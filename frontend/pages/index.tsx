@@ -8,8 +8,43 @@ import { Contract, providers, utils } from "ethers";
 import { NFT_CONTRACT_ABI, NFT_CONTRACT_ADDRESS } from "../constants";
 
 const Home: NextPage = () => {
+  const [presaleStarted, setPresaleStarted] = useState<boolean>(false);
   const [walletConnected, setWalletConnected] = useState<boolean>(false);
   const web3ModalRef = useRef<Web3Modal | null>(null);
+
+  const startPresale = async () => {
+    try {
+      const signer = await getProviderOrSigner(true);
+      const nftContract = new Contract(
+        NFT_CONTRACT_ADDRESS,
+        NFT_CONTRACT_ABI,
+        signer
+      );
+
+      const txn = await nftContract.startPresale();
+      await txn.wait();
+      setPresaleStarted(true);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const checkIfPresaleStarted: () => Promise<void> = async () => {
+    try {
+      const provider = await getProviderOrSigner();
+
+      const nftContract = new Contract(
+        NFT_CONTRACT_ADDRESS,
+        NFT_CONTRACT_ABI,
+        provider
+      );
+
+      const isPresaleStarted = nftContract.presaleStarted();
+      setPresaleStarted(isPresaleStarted);
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   const getProviderOrSigner: (
     needSigner?: boolean
@@ -21,8 +56,8 @@ const Home: NextPage = () => {
 
     const { chainId } = await web3Provider.getNetwork();
     if (chainId !== 4) {
-      window.alert("please swithc to Rinkeby network");
-      throw new Error("please swithc to Rinkeby network");
+      window.alert("please switch to Rinkeby network");
+      throw new Error("please switch to Rinkeby network");
     }
 
     if (needSigner) {
@@ -33,7 +68,7 @@ const Home: NextPage = () => {
     return web3Provider;
   };
 
-  const connetWallet: () => Promise<void> = async () => {
+  const connectWallet: () => Promise<void> = async () => {
     try {
       await getProviderOrSigner();
       setWalletConnected(true);
@@ -50,11 +85,24 @@ const Home: NextPage = () => {
         disableInjectedProvider: false,
       });
 
-      connetWallet();
+      connectWallet();
     }
   });
 
-  return <div>kskajdhkjashd</div>;
+  return (
+    <>
+      <Head>
+        <title>Crypto Devs NFT</title>
+      </Head>
+      <div className={styles.main}>
+        {!walletConnected ? (
+          <button className={styles.button} onClick={connectWallet}>
+            Connect wallet
+          </button>
+        ) : null}
+      </div>
+    </>
+  );
 };
 
 export default Home;
