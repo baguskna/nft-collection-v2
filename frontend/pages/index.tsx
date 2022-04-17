@@ -8,11 +8,33 @@ import { Contract, providers, utils } from "ethers";
 import { NFT_CONTRACT_ABI, NFT_CONTRACT_ADDRESS } from "../constants";
 
 const Home: NextPage = () => {
+  const [isOwner, setIsOwner] = useState<boolean>(false);
   const [presaleStarted, setPresaleStarted] = useState<boolean>(false);
+  const [presaleEnded, setPresaleEnded] = useState<boolean>(false);
   const [walletConnected, setWalletConnected] = useState<boolean>(false);
   const web3ModalRef = useRef<Web3Modal | null>(null);
 
-  const startPresale = async () => {
+  const getOwner: () => Promise<void> = async () => {
+    try {
+      const signer = await getProviderOrSigner(true);
+      const nftContrct = new Contract(
+        NFT_CONTRACT_ADDRESS,
+        NFT_CONTRACT_ABI,
+        signer
+      );
+
+      const owner = await nftContrct.owner();
+      const userAddress = (signer as providers.JsonRpcSigner).getAddress();
+
+      if (owner === userAddress) {
+        setIsOwner(true);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const startPresale: () => Promise<void> = async () => {
     try {
       const signer = await getProviderOrSigner(true);
       const nftContract = new Contract(
@@ -29,7 +51,28 @@ const Home: NextPage = () => {
     }
   };
 
-  const checkIfPresaleStarted: () => Promise<void> = async () => {
+  const checkIfPresaleEnded: () => Promise<void> = async () => {
+    try {
+      const provider = await getProviderOrSigner();
+      const nftContract = new Contract(
+        NFT_CONTRACT_ADDRESS,
+        NFT_CONTRACT_ABI,
+        provider
+      );
+
+      const presaleEndTime = await nftContract.presaleEnded();
+      const currentTimeInSecond = Date.now() / 1000;
+      // lt is lest than
+      const hasPreasaleEnded = presaleEndTime.lt(
+        Math.floor(currentTimeInSecond)
+      );
+      setPresaleEnded(hasPreasaleEnded);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const checkIfPresaleStarted: () => Promise<boolean> = async () => {
     try {
       const provider = await getProviderOrSigner();
 
@@ -39,10 +82,12 @@ const Home: NextPage = () => {
         provider
       );
 
-      const isPresaleStarted = nftContract.presaleStarted();
+      const isPresaleStarted = await nftContract.presaleStarted();
       setPresaleStarted(isPresaleStarted);
+      return isPresaleStarted;
     } catch (error) {
       console.log(error);
+      return false;
     }
   };
 
@@ -77,6 +122,15 @@ const Home: NextPage = () => {
     }
   };
 
+  const onPageLoad: () => Promise<void> = async () => {
+    await connectWallet();
+    await getOwner();
+    const presaleStarted = await checkIfPresaleStarted();
+    if (presaleStarted) {
+      await checkIfPresaleEnded();
+    }
+  };
+
   useEffect(() => {
     if (!walletConnected) {
       web3ModalRef.current = new Web3Modal({
@@ -84,23 +138,26 @@ const Home: NextPage = () => {
         providerOptions: {},
         disableInjectedProvider: false,
       });
-
-      connectWallet();
+      onPageLoad();
     }
   });
+
+  const renderBody: () => JSX.Element | undefined = () => {
+    if (!walletConnected) {
+      return (
+        <button onClick={connectWallet} className={styles.button}>
+          Connect wallet
+        </button>
+      );
+    }
+  };
 
   return (
     <>
       <Head>
         <title>Crypto Devs NFT</title>
       </Head>
-      <div className={styles.main}>
-        {!walletConnected ? (
-          <button className={styles.button} onClick={connectWallet}>
-            Connect wallet
-          </button>
-        ) : null}
-      </div>
+      <div className={styles.main}>{renderBody()}</div>
     </>
   );
 };
