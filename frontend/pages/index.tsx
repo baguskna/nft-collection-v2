@@ -150,6 +150,38 @@ const Home: NextPage = () => {
         </button>
       );
     }
+
+    if (isOwner && !presaleStarted) {
+      return (
+        <button onClick={startPresale} className={styles.button}>
+          Start presale
+        </button>
+      );
+    }
+
+    if (!presaleStarted) {
+      return (
+        <div>
+          <span className={styles.descrription}>
+            Please wait until presale starts
+          </span>
+        </div>
+      );
+    }
+
+    if (presaleStarted && !presaleEnded) {
+      return (
+        <div>
+          <span className={styles.descrription}>
+            Presale is in progress, you can mint a Crypto Dev!
+            <button className={styles.button}>Presale Mint</button>
+          </span>
+        </div>
+      );
+    }
+
+    if (presaleEnded) {
+    }
   };
 
   return (
