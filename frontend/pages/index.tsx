@@ -14,6 +14,46 @@ const Home: NextPage = () => {
   const [walletConnected, setWalletConnected] = useState<boolean>(false);
   const web3ModalRef = useRef<Web3Modal | null>(null);
 
+  const presaleMint: () => Promise<void> = async () => {
+    try {
+      const signer = await getProviderOrSigner(true);
+      const nftContract = new Contract(
+        NFT_CONTRACT_ADDRESS,
+        NFT_CONTRACT_ABI,
+        signer
+      );
+
+      const txn = await nftContract.presaleMint({
+        value: utils.parseEther("0.01"),
+      });
+
+      await txn.wait();
+      window.alert("You successfully minted a token!");
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const publicMint: () => Promise<void> = async () => {
+    try {
+      const signer = await getProviderOrSigner(true);
+      const nftContract = new Contract(
+        NFT_CONTRACT_ADDRESS,
+        NFT_CONTRACT_ABI,
+        signer
+      );
+
+      const txn = await nftContract.mint({
+        value: utils.parseEther("0.01"),
+      });
+
+      await txn.wait();
+      window.alert("You successfully minted a token!");
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   const getOwner: () => Promise<void> = async () => {
     try {
       const signer = await getProviderOrSigner(true);
@@ -174,13 +214,26 @@ const Home: NextPage = () => {
         <div>
           <span className={styles.descrription}>
             Presale is in progress, you can mint a Crypto Dev!
-            <button className={styles.button}>Presale Mint</button>
+            <button className={styles.button} onClick={presaleMint}>
+              Presale Mint
+            </button>
           </span>
         </div>
       );
     }
 
     if (presaleEnded) {
+      return (
+        <div>
+          <span className={styles.descrription}>
+            Presale has ended. You can mint a Crypto Dev in public sale, if any
+            remain.
+            <button className={styles.button} onClick={publicMint}>
+              Public Mint
+            </button>
+          </span>
+        </div>
+      );
     }
   };
 
